@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import beta
+from numpy.random import dirichlet
 from matplotlib import pyplot as plt
 
 
@@ -27,3 +28,9 @@ def plot_sample_densities(arr, labels, bins=50):
     plt.xlabel('Value')
     plt.ylabel('Density')
     plt.legend()
+
+
+def multinomial_posterior_samples(N_list, n_samples=100000):
+    observations = np.array(N_list)
+    posterior_samples = dirichlet(np.full(len(N_list), 1) + observations, size=n_samples)
+    return posterior_samples
