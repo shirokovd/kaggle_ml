@@ -16,7 +16,7 @@ class Predictor(Evaluator):
         super(Predictor, self).__init__(config_file)
 
     def _setup_data_config(self, config):
-        self.test_df = pd.read_csv(config['dataset']['val_path'], sep=',')
+        self.test_df = pd.read_csv(config['dataset']['test_path'], sep=',')
         self.input_label = config['dataset'].get('input_label', self.test_df.columns[0])
         self.target_label = config['dataset'].get('target_label', self.test_df.columns[-1])
         self.prediction_label = config['dataset'].get('target_label', 'prediction')
@@ -55,8 +55,8 @@ class Predictor(Evaluator):
     def _setup_output_config(self, config):
         self.prediction_path = config['res']['prediction_path']
         os.makedirs(self.prediction_path, exist_ok=True)
-        self.plot_path = config['res']['plot_path']
-        os.makedirs(self.plot_path, exist_ok=True)
+        self.metrics_path = config['res']['metrics_path']
+        os.makedirs(self.metrics_path, exist_ok=True)
         self.all_test_outputs = list()
 
     def predict(self):
@@ -83,14 +83,14 @@ class Predictor(Evaluator):
         )
         conf_matrix_display.plot()
         conf_matrix_display.figure_.savefig(
-            os.path.join(self.plot_path, 'confusion_matrix.png'), dpi=conf_matrix_display.figure_.dpi
+            os.path.join(self.metrics_path, 'confusion_matrix.png'), dpi=conf_matrix_display.figure_.dpi
         )
 
         report = classification_report(
             self.test_df[self.target_label].values,
             self.all_test_outputs, output_dict=True)
         report_df = pd.DataFrame(report).transpose()
-        report_df.to_csv(os.path.join(self.plot_path, 'confusion_matrix.png'), sep=',', index=False)
+        report_df.to_csv(os.path.join(self.metrics_path, 'classification_report.csv'), sep=',', index=False)
 
         print('Accuracy: {0:.7f}, time: {1:.7f}, mean time: {2:.7f}'.format(
             accuracy,

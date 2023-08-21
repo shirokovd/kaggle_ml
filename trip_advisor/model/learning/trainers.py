@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import accuracy_score
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
@@ -109,12 +110,15 @@ class Trainer(Evaluator):
         epoch_losses = list()
         loader = None
         all_outputs = list()
+        target = list()
         if mode == TRAIN_CONST:
             self.model.train(True)
             loader = self.train_loader
+            target = self.train_df[self.target_label].values
         elif mode == VAL_CONST:
             self.model.eval()
             loader = self.val_loader
+            target = self.val_df[self.target_label].values
         epoch_start = time.perf_counter()
         for batch in tqdm(loader, desc='Epoch {}, {}'.format(epoch_num + 1, mode)):
             self.model.zero_grad()
@@ -125,7 +129,7 @@ class Trainer(Evaluator):
             if mode == TRAIN_CONST:
                 outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
             else:
-                with torch.no_grad:
+                with torch.no_grad():
                     outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
             epoch_loss = outputs.loss
             epoch_losses.append(epoch_loss.item())
@@ -142,8 +146,11 @@ class Trainer(Evaluator):
         self.mean_epoch_loss = np.mean(epoch_losses)
         self.writer.add_scalar('Loss/{}'.format(mode), self.mean_epoch_loss, epoch_num)
 
-        print('Mean loss = {0}, time: {1:.7f}'.format(
-            self.mean_epoch_loss,
+        accuracy = accuracy_score(target, all_outputs)
+        self.writer.add_scalar('Accuracy/{}'.format(mode), accuracy, epoch_num)
+
+        print('Mean loss = {0}, accuracy = {1:.3f},  time: {2:.7f}'.format(
+            self.mean_epoch_loss, accuracy,
             epoch_end - epoch_start)
         )
         return all_outputs
@@ -159,15 +166,15 @@ class Trainer(Evaluator):
                 )
             )
             self.all_val_outputs = self.epoch(epoch_num, mode=VAL_CONST)
-        self._save_prediction(
-            self.train_df[self.input_label].values,
-            self.train_df[self.target_label].values,
-            self.all_train_outputs,
-            os.path.join(self.prediction_path, 'train.csv')
-        )
-        self._save_prediction(
-            self.val_df[self.input_label].values,
-            self.val_df[self.target_label].values,
-            self.all_val_outputs,
-            os.path.join(self.prediction_path, 'val.csv')
-        )
+            self._save_prediction(
+                self.train_df[self.input_label].values,
+                self.train_df[self.target_label].values,
+                self.all_train_outputs,
+                os.path.join(self.prediction_path, 'train_epoch={}.csv'.format(epoch_num))
+            )
+            self._save_prediction(
+                self.val_df[self.input_label].values,
+                self.val_df[self.target_label].values,
+                self.all_val_outputs,
+                os.path.join(self.prediction_path, 'val_epoch={}.csv'.format(epoch_num))
+            )
