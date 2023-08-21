@@ -1,0 +1,35 @@
+tokenizer:
+  type: bert_tokenizer
+  name: bert-base-uncased
+  do_lower_case: True
+  add_special_tokens: True
+  return_attention_mask: True
+  pad_to_max_length: True
+  seq_length: 512
+  return_tensors: pt
+
+model:
+  path: ./data/res/models/init.pt
+  type: bert_for_sequence_classification
+  name: bert-base-uncased
+  device: gpu
+  num_label: 5
+
+eval:
+  optimizer: adam_w
+  scheduler: linear_schedule_with_warmup
+  epoch_count: 5
+  lr: 0.00002
+  eps: 0.00000001
+
+dataset:
+  train_path: ./data/src/train.csv
+  val_path: ./data/src/val.csv
+  test_path: ./data/src/test.csv
+  batch_size: 16
+
+res:
+  model_path: ./data/res/models
+  tb_path: ./data/res/tensorboard
+  prediction_path: ./data/res/prediction
+  metrics_path: ./data/res/metrics
